@@ -1,11 +1,8 @@
-# pat_HaBYRppWtFugyPesI7rshnEEEx45g8fULhlXzmTRIf5PkWybRsJHadg5121CiLOV
-# pat_W4lpv9SZjKc3pFS7WYC30vFnG4I9uz4myS7WMFD0XSO9U3V8bAlt7vceDITZZJHF
-import requests
+import http.client
 import json
 
-
 class Bot:
-    def __init__(self, api_key, bot_id, base_url="https://api.coze.com/open_api/v2/chat"):
+    def __init__(self, api_key, bot_id, base_url="api.coze.com"):
         self.api_key = api_key
         self.bot_id = bot_id
         self.base_url = base_url
@@ -31,18 +28,21 @@ class Bot:
         if self.conversation_id:
             data['conversation_id'] = self.conversation_id
 
-        response = requests.post(self.base_url, headers=headers, json=data)
+        conn = http.client.HTTPSConnection(self.base_url)
+        conn.request("POST", "/open_api/v2/chat", body=json.dumps(data), headers=headers)
+        
+        response = conn.getresponse()
+        response_data = response.read().decode()
 
-        if response.status_code == 200:
-            response_data = response.json()
-            self.conversation_id = response_data.get('conversation_id')
-            messages = response_data.get('messages', [])
+        if response.status == 200:
+            response_json = json.loads(response_data)
+            self.conversation_id = response_json.get('conversation_id')
+            messages = response_json.get('messages', [])
             for message in messages:
                 self.chat_history.append(message)
             return messages
         else:
-            return f"Error: {response.status_code} - {response.text}"
-
+            return f"Error: {response.status} - {response_data}"
 
 def main():
     api_key = "pat_8BIXdKJUqnzXN1vh9CEMLDkh6LZP63cYPxtrd1Duc5TXK7Oqlm7hXSfyTYp2Fr8b"
@@ -60,7 +60,6 @@ def main():
         for message in messages:
             if message['role'] == 'assistant':
                 print(f"Bot: {message['content']}")
-
 
 if __name__ == "__main__":
     main()
